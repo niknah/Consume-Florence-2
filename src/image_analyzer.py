@@ -25,16 +25,21 @@ class ImageAnalyzer:
         '<REGION_TO_CATEGORY>', '<REGION_TO_DESCRIPTION>', '<OCR>', '<OCR_WITH_REGION>'
     }
 
-    def __init__(self, model_id, image_source):
+    def __init__(self, model_id, image_source=None):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
         self.model_id = model_id
-        self.image = self.load_image(image_source)
         self.model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True).eval().to(self.device)
         self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         self.output_dir = 'outputs'
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
+        if image_source is not None:
+            self.set_image_source(image_source)
+
+    def set_image_source(self, image_source):
+        self.image_source = image_source
+        self.image = self.load_image(image_source)
         self.save_input_image(image_source)
 
     def load_image(self, image_source):
@@ -173,7 +178,7 @@ class ImageAnalyzer:
 
 
     def save_text_output(self, task_name, text_output):
-        output_path = self.get_output_path(task_name, 'txt')
+        output_path = self.get_output_path(os.path.join(task_name , os.path.basename(self.image_source)), 'txt')
         with open(output_path, 'w') as f:
             f.write(text_output)
         print(f"Text output saved to {output_path}")
